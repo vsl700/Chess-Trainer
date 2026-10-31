@@ -66,8 +66,11 @@ def get_pawn_moves(board: Board, piece: Piece) -> list[Move]:
         new_x = piece.x + (direction * side)
         if board.inside_board(new_x, new_y):
             target = board.get_piece(new_x, new_y)
-            if target is not None and target.colour != piece.colour:
-                pseudo_legal_moves.append(Move(MoveType.PROMOTION if is_promotion else MoveType.CAPTURE, piece, piece.x, piece.y, target, new_x, new_y))
+            if target is not None:
+                if target.colour != piece.colour:
+                    pseudo_legal_moves.append(Move(MoveType.PROMOTION if is_promotion else MoveType.CAPTURE, piece, piece.x, piece.y, target, new_x, new_y))
+                elif target.colour == piece.colour:
+                    pseudo_legal_moves.append(Move(MoveType.GUARDING, piece, piece.x, piece.y, target, new_x, new_y))
 
             if new_x == board.enpassant_target[0] and new_y == board.enpassant_target[1] and board.enpassant_target[2].colour != piece.colour:
                 pseudo_legal_moves.append(Move(MoveType.EN_PASSANT, piece, piece.x, piece.y, board.enpassant_target[2], new_x, new_y))
@@ -140,6 +143,8 @@ def get_sliding_moves(board: Board, sliding_moves: tuple[tuple], piece: Piece) -
         target = board.get_piece(new_x, new_y)
         if target.colour != piece.colour:
             pseudo_legal_moves.append(Move(MoveType.CAPTURE, piece, piece.x, piece.y, target, new_x, new_y))
+        elif target.colour == piece.colour:
+            pseudo_legal_moves.append(Move(MoveType.GUARDING, piece, piece.x, piece.y, target, new_x, new_y))
 
     return pseudo_legal_moves
 
@@ -160,5 +165,7 @@ def get_set_moves(board: Board, moves: tuple[tuple], piece: Piece) -> list[Move]
             pseudo_legal_moves.append(Move(MoveType.MOVE, piece, piece.x, piece.y, target, new_x, new_y))
         elif target.colour != piece.colour:
             pseudo_legal_moves.append(Move(MoveType.CAPTURE, piece, piece.x, piece.y, target, new_x, new_y))
+        elif target.colour == piece.colour:
+            pseudo_legal_moves.append(Move(MoveType.GUARDING, piece, piece.x, piece.y, target, new_x, new_y))
 
     return pseudo_legal_moves

@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 import random
 import pygame
 
-from constants import SQUARE_SIZE, BOARD_WIDTH, BOARD_HEIGHT, RANKS, FILES, FONT_SIZE, FONT_COLOUR, TEXT_OFFSET, FPS, LOAD_FILE, Colour, GameStates, PieceType
-from setup import window, clock, FONT, PIECE_SPRITES, SQUARE_SPRITES, SYMBOL_SPRITES
+from constants import SQUARE_SIZE, BOARD_WIDTH, BOARD_HEIGHT, RANKS, FILES, FONT_SIZE, FONT_COLOUR, TEXT_OFFSET, FPS, LOAD_FILE, Colour, GameStates, PieceType, MoveType
+from setup import window, clock, FONT, PIECE_SPRITES, SQUARE_SPRITES, SUPPORT_SPRITES, SYMBOL_SPRITES, OCCUPANCY_SYMBOL_SPRITES
 from engine import Engine
 from board import Board
 
@@ -24,6 +24,8 @@ class Game:
         self.opponent_pieces = []
         self.in_check = False
         self.legal_moves = False
+        self.white_moves = False
+        self.black_moves = False
 
         # Move history
         self.board_history = self.load_game(LOAD_FILE)
@@ -32,6 +34,9 @@ class Game:
         # Move selection variables
         self.selected_square = None
         self.last_move = None
+
+        # Render variables
+        self.ignore_regular = False
 
         # Setup game
         self.board.load_FEN(self.board_history[self.position_index])
@@ -44,51 +49,53 @@ class Game:
             mouse_position = pygame.mouse.get_pos()
             position = screen_to_square(mouse_position)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+            event = pygame.event.wait()
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
                     terminate()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        terminate()
-                    if event.key == pygame.K_SPACE:
-                        # perform random legal move
-                        if not self.gameover:
-                            self.deselect()
-                            self.perform_turn(random.choice(self.legal_moves))
-                            self.render_board()
-                    if event.key == pygame.K_RIGHT:
-                        self.position_index = min(len(self.board_history)-1, self.position_index+1)
-                        self.shift_position()
-                    if event.key == pygame.K_LEFT:
-                        self.position_index = max(0, self.position_index-1)
-                        self.shift_position()
-                    if event.key == pygame.K_DOWN:
-                        self.position_index = 0
-                        self.shift_position()
-                    if event.key == pygame.K_UP:
-                        self.position_index = len(self.board_history)-1
-                        self.shift_position()
-                    if event.key == pygame.K_s:
-                        self.save_game(LOAD_FILE)
-                        print(f"Saved as file to load! {LOAD_FILE}")
-
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if self.selected_square == None:
-                        self.select(position)
-                    elif position == self.selected_square:
+                if event.key == pygame.K_SPACE:
+                    # perform random legal move
+                    if not self.gameover:
                         self.deselect()
-                    elif self.get_selected_move(self.selected_square, position) is None:
-                        self.deselect()
-                        self.select(position)
+                        self.perform_turn(random.choice(self.legal_moves))
+                        self.render_board()
+                if event.key == pygame.K_RIGHT:
+                    self.position_index = min(len(self.board_history)-1, self.position_index+1)
+                    self.shift_position()
+                if event.key == pygame.K_LEFT:
+                    self.position_index = max(0, self.position_index-1)
+                    self.shift_position()
+                if event.key == pygame.K_DOWN:
+                    self.position_index = 0
+                    self.shift_position()
+                if event.key == pygame.K_UP:
+                    self.position_index = len(self.board_history)-1
+                    self.shift_position()
+                if event.key == pygame.K_s:
+                    self.save_game(LOAD_FILE)
+                    print(f"Saved as file to load! {LOAD_FILE}")
+                if event.key == pygame.K_i:
+                    self.ignore_regular = not self.ignore_regular
                     self.render_board()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.selected_square == None:
+                    self.select(position)
+                elif position == self.selected_square:
+                    self.deselect()
+                elif self.get_selected_move(self.selected_square, position) is None:
+                    self.deselect()
+                    self.select(position)
+                self.render_board()
 
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    if self.selected_square is not None:
-                        selected_move = self.get_selected_move(self.selected_square, position)
-                        if position != self.selected_square and selected_move is not None:
-                            self.deselect()
-                            self.perform_turn(selected_move)
-                    self.render_board()
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if self.selected_square is not None:
+                    selected_move = self.get_selected_move(self.selected_square, position)
+                    if position != self.selected_square and selected_move is not None:
+                        self.deselect()
+                        self.perform_turn(selected_move)
+                self.render_board()
 
             # Process
             pygame.display.set_caption(f"FPS: {int(clock.get_fps())}/{FPS}")
@@ -128,6 +135,10 @@ class Game:
 
         pseudo_legal_moves = self.engine.get_pseudo_legal_moves(self.current_turn_pieces)
         self.legal_moves = self.engine.get_legal_moves(self.in_check, pseudo_legal_moves, self.current_turn_pieces[0], self.opponent_pieces)
+        pseudo_white_moves = self.engine.get_pseudo_legal_moves(self.board.pieces[Colour.WHITE])
+        self.white_moves = self.engine.get_legal_moves(self.in_check, pseudo_white_moves, self.board.pieces[Colour.WHITE][0], self.board.pieces[Colour.BLACK], guarding=True)
+        pseudo_black_moves = self.engine.get_pseudo_legal_moves(self.board.pieces[Colour.BLACK])
+        self.black_moves = self.engine.get_legal_moves(self.in_check, pseudo_black_moves, self.board.pieces[Colour.BLACK][0], self.board.pieces[Colour.WHITE], guarding=True)
 
         game_state = self.engine.is_gameover(self.in_check, len(self.legal_moves))
         if game_state == GameStates.STALEMATE or game_state == GameStates.CHECKMATE:
@@ -178,11 +189,26 @@ class Game:
                 square_sprite = SQUARE_SPRITES[0] if (x+y) % 2 == 0 else SQUARE_SPRITES[1]
                 window.blit(square_sprite, (x*SQUARE_SIZE, y*SQUARE_SIZE))
 
-        # Draw board coordinates
-        for x in range(BOARD_WIDTH):
-            window.blit(FONT.render(RANKS[x], True, FONT_COLOUR), ((x)*SQUARE_SIZE+SQUARE_SIZE-FONT_SIZE/2, BOARD_HEIGHT*SQUARE_SIZE-FONT_SIZE))
-        for y in range(BOARD_HEIGHT):
-            window.blit(FONT.render(FILES[y], True, FONT_COLOUR), (TEXT_OFFSET, y*SQUARE_SIZE+TEXT_OFFSET))
+                # Draw occupancy symbols
+                drawn_white = []
+                white_guardian_moves = []
+                for move in self.white_moves:
+                    if move.target_x == x and move.target_y == y and (x,y) not in drawn_white:
+                        if not self.ignore_regular or move.move_type not in (MoveType.MOVE, MoveType.DOUBLE_PUSH):
+                            window.blit(SUPPORT_SPRITES[move.move_type.value + (len(SYMBOL_SPRITES) if (x+y) % 2 != 0 else 0)], (move.target_x*SQUARE_SIZE, move.target_y*SQUARE_SIZE))
+                            window.blit(OCCUPANCY_SYMBOL_SPRITES[move.move_type.value], (move.target_x*SQUARE_SIZE, move.target_y*SQUARE_SIZE))
+                            drawn_white.append((x,y))
+
+                            if move.move_type is MoveType.GUARDING:
+                                white_guardian_moves.append((x,y))
+                
+                drawn_black = []
+                for move in self.black_moves:
+                    if move.target_x == x and move.target_y == y and (x,y) not in drawn_black:
+                        if not self.ignore_regular or move.move_type not in (MoveType.MOVE, MoveType.DOUBLE_PUSH):
+                            window.blit(SUPPORT_SPRITES[move.move_type.value + (len(SYMBOL_SPRITES) if (x+y) % 2 != 0 else 0)], (move.target_x*SQUARE_SIZE, move.target_y*SQUARE_SIZE))
+                            window.blit(OCCUPANCY_SYMBOL_SPRITES[(move.move_type.value if (x,y) not in white_guardian_moves else MoveType.GUARDING.value) + len(SYMBOL_SPRITES) * (2 if (x,y) in drawn_white else 1)], (move.target_x*SQUARE_SIZE, move.target_y*SQUARE_SIZE))
+                            drawn_black.append((x,y))
 
         # Draw highlight squares
         if self.last_move is not None:
@@ -190,6 +216,19 @@ class Game:
             window.blit(SQUARE_SPRITES[3], (self.last_move.target_x*SQUARE_SIZE, self.last_move.target_y*SQUARE_SIZE))
         if self.selected_square is not None:
             window.blit(SQUARE_SPRITES[2], (self.selected_square[0]*SQUARE_SIZE, self.selected_square[1]*SQUARE_SIZE))
+
+        # Draw symbols for selected piece moves
+        if self.selected_square is not None:
+            for move in self.legal_moves:
+                if move.piece_x == self.selected_square[0] and move.piece_y == self.selected_square[1]:
+                    window.blit(SUPPORT_SPRITES[move.move_type.value + (len(SYMBOL_SPRITES) if (move.target_x+move.target_y) % 2 != 0 else 0)], (move.target_x*SQUARE_SIZE, move.target_y*SQUARE_SIZE))
+                    window.blit(SYMBOL_SPRITES[move.move_type.value], (move.target_x*SQUARE_SIZE, move.target_y*SQUARE_SIZE))
+
+        # Draw board coordinates
+        for x in range(BOARD_WIDTH):
+            window.blit(FONT.render(RANKS[x], True, FONT_COLOUR), ((x)*SQUARE_SIZE+SQUARE_SIZE-FONT_SIZE/2, BOARD_HEIGHT*SQUARE_SIZE-FONT_SIZE))
+        for y in range(BOARD_HEIGHT):
+            window.blit(FONT.render(FILES[y], True, FONT_COLOUR), (TEXT_OFFSET, y*SQUARE_SIZE+TEXT_OFFSET))
 
         # Draw pieces on board
         for y in range(BOARD_HEIGHT):
@@ -199,12 +238,6 @@ class Game:
                     colour = 0 if piece.colour == Colour.WHITE else 6
                     piece_sprite = PIECE_SPRITES[piece.piece_type.value + colour]
                     window.blit(piece_sprite, (x*SQUARE_SIZE, y*SQUARE_SIZE))
-
-        # Draw symbols for selected piece moves
-        if self.selected_square is not None:
-            for move in self.legal_moves:
-                if move.piece_x == self.selected_square[0] and move.piece_y == self.selected_square[1]:
-                    window.blit(SYMBOL_SPRITES[move.move_type.value], (move.target_x*SQUARE_SIZE, move.target_y*SQUARE_SIZE))
 
 def screen_to_square(mouse_position) -> tuple[int]:
     return (int(mouse_position[0]/SQUARE_SIZE), int(mouse_position[1]/SQUARE_SIZE))

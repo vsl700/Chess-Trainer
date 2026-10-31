@@ -13,9 +13,11 @@ clock = pygame.time.Clock()
 FONT = pygame.font.Font("assets/fonts/DIN Condensed Bold.ttf", FONT_SIZE)
 
 # Load all sprites
-PIECE_SPRITES = SpriteSheet("assets/sprites/custom-pieces.png", (150,150), (SQUARE_SIZE, SQUARE_SIZE), True).slice_sheet()
+PIECE_SPRITES = SpriteSheet("assets/sprites/chesspieces.png", (150,150), (SQUARE_SIZE, SQUARE_SIZE), True).slice_sheet()
 SQUARE_SPRITES = SpriteSheet("assets/sprites/squares.png", (100,100), (SQUARE_SIZE, SQUARE_SIZE), True).slice_sheet()
+SUPPORT_SPRITES = SpriteSheet("assets/sprites/color_correction_symbols.png", (100,100), (SQUARE_SIZE, SQUARE_SIZE), True).slice_sheet()
 SYMBOL_SPRITES = SpriteSheet("assets/sprites/symbols.png", (100,100), (SQUARE_SIZE, SQUARE_SIZE), True).slice_sheet()
+OCCUPANCY_SYMBOL_SPRITES = SpriteSheet("assets/sprites/occupancy_symbols.png", (100,100), (SQUARE_SIZE, SQUARE_SIZE), True).slice_sheet()
 
 # Load all sounds
 

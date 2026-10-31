@@ -23,10 +23,13 @@ class Engine:
 
         return pseudo_legal_moves
 
-    def get_legal_moves(self, in_check: bool, pseudo_legal_moves: list[Move], current_turn_king: Piece, opponent_pieces: list[Piece]) -> list[Move]:
+    def get_legal_moves(self, in_check: bool, pseudo_legal_moves: list[Move], current_turn_king: Piece, opponent_pieces: list[Piece], guarding=False) -> list[Move]:
         legal_moves = []
 
         for move in pseudo_legal_moves:
+            if move.move_type == MoveType.GUARDING and not guarding:
+                continue
+
             # stops castling out of or through check
             if move.move_type == MoveType.CASTLE_KING_SIDE:
                 if in_check or self.is_attacked(current_turn_king.x+1, current_turn_king.y, opponent_pieces):

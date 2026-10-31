@@ -45,6 +45,7 @@ class MoveType(Enum):
     PROMOTION = auto()
     CASTLE_QUEEN_SIDE = auto()
     CASTLE_KING_SIDE = auto()
+    GUARDING = auto()
 
 class GameStates(Enum):
     NOTHING = auto()
