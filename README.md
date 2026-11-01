@@ -6,6 +6,18 @@ The idea is to use this application during a game so it can show you, for exampl
 > [!NOTE]
 > This project is a work-in-progress and there's still a few things to be done to complete or improve its functionality.
 
+### LICHESS PUZZLES:
+This version of the app is focused on helping with solving chess puzzles (from Lichess), rather than regular chess games. The application works the same way as the 'main' version, except it fetches a Lichess puzzle (by its ID) and then loads it up as a regular game (like it would normally load a locally saved chess game).
+
+> [!NOTE]
+> In order to load a puzzle up, you must create an API token from Lichess.
+
+In `tokens.py` simply paste your token, as well as the chess puzzle ID you want to play, and you're good to go.
+```
+API_TOKEN = "ENTER_TOKEN_ID"
+PUZZLE_ID = "ENTER_PUZZLE_ID"
+```
+
 ### USAGE:  
 The software uses basic chess sprites for rendering the regular chess board and pieces, as well as additional icons & colors to highlight the details in the current situation. The icons & colors go as described:
 - Colors:
@@ -33,7 +45,8 @@ To launch software run the `main.py` file.
 
 ### REQUIREMENTS:
 Python 3.11+  
-Pygame 2.3.1+
+Pygame 2.3.1+  
+Berserk (https://github.com/lichess-org/berserk)
 
 ### SCREENSHOTS:  
 <img width="1308" height="1347" alt="Screenshot (19)" src="https://github.com/user-attachments/assets/4b0f8caf-031d-4642-b276-4dbb24ef4902" />
